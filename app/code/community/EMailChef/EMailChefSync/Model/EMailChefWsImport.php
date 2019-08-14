@@ -703,7 +703,7 @@ class EMailChefWsImport
      *
      * @param   array
      */
-    public function saveFieldMapping($post)
+    /*public function saveFieldMapping($post)
     {
         try {
             $connectionWrite = Mage::getSingleton('core/resource')->getConnection('core_write');
@@ -721,7 +721,7 @@ class EMailChefWsImport
             Mage::log('Exception: '.$e->getMessage(), 0);
             die($e);
         }
-    }
+    }*/
 
     /**
      * Get the config.

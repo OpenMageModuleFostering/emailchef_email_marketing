@@ -154,6 +154,15 @@
                             <show_in_website>1</show_in_website>
                             <show_in_store>1</show_in_store>
                         </enable_log>
+                        <create_custom_fields translate="label">
+                            <label>Create missing default fields in list and map them</label>
+                            <frontend_type>button</frontend_type>
+                            <frontend_model>emailchef/adminhtml_system_config_form_createfieldsbutton</frontend_model>
+                            <sort_order>120</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </create_custom_fields>
                     </fields>
                 </emailchef>
                 <!-- mapping section -->

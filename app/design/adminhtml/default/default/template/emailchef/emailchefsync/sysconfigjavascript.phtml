@@ -5,13 +5,16 @@
 ?>
 <script language="JavaScript">
     // Initialise observer so that when list is changed, groups are reloaded
-    urlList = '<?php echo Mage::getModel('adminhtml/url')->getUrl("emailchef/adminhtml_configuration/getgroups"); ?>';
+    urlGroup = '<?php echo Mage::getModel('adminhtml/url')->getUrl("emailchef/adminhtml_configuration/getgroups"); ?>';
     document.observe("dom:loaded", function() {
-        initListObserver(urlList);
+        initListObserver(urlGroup);
     });
     // Initialise observer to run self-test
     urlTest = '<?php echo Mage::getModel('adminhtml/url')->getUrl("emailchef/adminhtml_configuration/testconnection"); ?>';
+    urlList = '<?php echo Mage::getModel('adminhtml/url')->getUrl("emailchef/adminhtml_configuration/getlists"); ?>';
+    urlCreateFields = '<?php echo Mage::getModel('adminhtml/url')->getUrl("emailchef/adminhtml_configuration/createfields"); ?>';
     document.observe("dom:loaded", function() {
-        initSelfTestObserver(urlTest);
+        initSelfTestObserver(urlTest,urlList);
+        initCreateFieldsObserver(urlCreateFields);
     });
 </script>
