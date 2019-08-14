@@ -1,0 +1,358 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <EMailChef_EMailChefSync>
+            <version>2.7.5</version>
+        </EMailChef_EMailChefSync>
+    </modules>
+<!-- frontend -->
+	<frontend>
+        <routers>
+            <emailchef>
+                <use>standard</use>
+                <args>
+                    <module>EMailChef_EMailChefSync</module>
+                    <frontName>emailchef</frontName>
+                </args>
+            </emailchef>
+        </routers>
+		<translate>
+			<modules>
+				<emailchef>
+					<files>
+						<default>EMailChef_EMailChefSync.csv</default>
+					</files>
+				</emailchef>
+			</modules>
+		</translate>
+		<layout>
+			<updates>
+				<emailchef>
+					<file>emailchef.xml</file>
+				</emailchef>
+			</updates>
+		</layout>
+	</frontend>
+<!-- global -->
+    <global>
+<!-- models -->
+        <models>
+            <emailchef>
+                <class>EMailChef_EMailChefSync_Model</class>
+                <resourceModel>emailchef_mysql4</resourceModel>
+            </emailchef>
+            <emailchef_mysql4>
+                <class>EMailChef_EMailChefSync_Model_Mysql4</class>
+                <entities>
+                    <job>
+                        <table>emailchef_sync_jobs</table>
+                    </job>
+                     <sync>
+                        <table>emailchef_sync</table>
+                    </sync>
+                    <log>
+                        <table>emailchef_log</table>
+                    </log>
+                </entities>
+            </emailchef_mysql4>
+            <!-- Override Subscriber so we can disable Notifiactions -->
+            <newsletter>
+				<rewrite>
+					<subscriber>EMailChef_EMailChefSync_Model_Subscriber</subscriber>
+				</rewrite>
+			</newsletter>
+        </models>
+<!-- blocks -->
+        <blocks>
+            <emailchef>
+                <class>EMailChef_EMailChefSync_Block</class>
+            </emailchef>
+        </blocks>
+        <helpers>
+            <emailchef>
+                <class>EMailChef_EMailChefSync_Helper</class>
+            </emailchef>
+        </helpers>
+<!-- resources -->
+        <resources>
+            <emailchef_setup>
+                <setup>
+                    <module>EMailChef_EMailChefSync</module>
+                </setup>
+                <connection>
+                    <use>core_setup</use>
+                </connection>
+            </emailchef_setup>
+            <emailchef_write>
+                <connection>
+                    <use>core_write</use>
+                </connection>
+            </emailchef_write>
+            <emailchef_read>
+                <connection>
+                    <use>core_read</use>
+                </connection>
+            </emailchef_read>
+        </resources>
+<!-- events -->
+		<events>
+            <newsletter_subscriber_save_before>
+                <observers>
+                    <emailchef_observer>
+                        <type>singleton</type>
+                        <class>EMailChef_EMailChefSync_Model_Observer</class>
+                        <method>beforeSave</method>
+                    </emailchef_observer>
+                </observers>
+            </newsletter_subscriber_save_before>
+			<newsletter_subscriber_save_after>
+				<observers>
+					<emailchefsenduser_observer>
+						<type>singleton</type>
+						<class>EMailChef_EMailChefSync_Model_Observer</class>
+						<method>sendUser</method>
+					</emailchefsenduser_observer>
+				</observers>
+			</newsletter_subscriber_save_after>
+			<customer_customer_authenticated>
+				<observers>
+					<emailchefcheckuser_observer>
+						<type>singleton</type>
+						<class>EMailChef_EMailChefSync_Model_Observer</class>
+						<method>checkUser</method>
+					</emailchefcheckuser_observer>
+				</observers>
+			</customer_customer_authenticated>
+			<controller_action_postdispatch_adminhtml_system_config_save>
+				<observers>
+					<emailchefconfigsave_observer>
+						<type>singleton</type>
+						<class>EMailChef_EMailChefSync_Model_Observer</class>
+						<method>saveSystemConfig</method>
+					</emailchefconfigsave_observer>
+				</observers>
+			</controller_action_postdispatch_adminhtml_system_config_save>
+			<admin_session_user_login_success>
+				<observers>
+					<emailchefconfigtest_observer>
+						<type>singleton</type>
+						<class>EMailChef_EMailChefSync_Model_Observer</class>
+						<method>configCheck</method>
+					</emailchefconfigtest_observer>
+				</observers>
+			</admin_session_user_login_success>
+			<controller_action_postdispatch_checkout_onepage_saveOrder>
+				<observers>
+					<emailchef_subscribe_during_checkout>
+						<type>singleton</type>
+						<class>EMailChef_EMailChefSync_Model_Observer</class>
+						<method>onCheckoutSaveOrder</method>
+					</emailchef_subscribe_during_checkout>
+				</observers>
+			</controller_action_postdispatch_checkout_onepage_saveOrder>
+            <controller_action_postdispatch_checkout_multishipping_saveOrder>
+                <observers>
+                    <emailchef_checkout_order_save>
+                        <type>singleton</type>
+                        <class>EMailChef_EMailChefSync_Model_Observer</class>
+                        <method>onCheckoutSaveOrder</method>
+                    </emailchef_checkout_order_save>
+                </observers>
+            </controller_action_postdispatch_checkout_multishipping_saveOrder>
+			<customer_save_after>
+				<observers>
+					<emailchef_checkout_order_save>
+						<type>singleton</type>
+						<class>EMailChef_EMailChefSync_Model_Observer</class>
+						<method>prepareCustomerForDataSync</method>
+					</emailchef_checkout_order_save>
+				</observers>
+			</customer_save_after>
+			<sales_order_save_after>
+				<observers>
+					<emailchef_sales_order_save_after>
+						<type>singleton</type>
+						<class>EMailChef_EMailChefSync_Model_Observer</class>
+						<method>prepareOrderForDataSync</method>
+					</emailchef_sales_order_save_after>
+				</observers>
+			</sales_order_save_after>
+		</events>
+    </global>
+<!-- admin -->
+    <admin>
+        <routers>
+            <emailchef>
+                <use>admin</use>
+                <args>
+                    <module>EMailChef_EMailChefSync</module>
+                    <frontName>emailchef</frontName>
+                </args>
+            </emailchef>
+        </routers>
+    </admin>
+<!-- default -->
+    <default>
+        <emailchef_newsletter>
+            <emailchef>
+                <model>emailchef/ws</model>
+                <require_subscription_confirmation>0</require_subscription_confirmation>
+                <enable_testmode>0</enable_testmode>
+                <emailchef_cron_frequency>0</emailchef_cron_frequency>
+                <emailchef_cron_offset>0</emailchef_cron_offset>
+            </emailchef>
+            <emailchef_mapping>
+                <!-- Default mapping from Magento fields (or this extensions mapper) to EMailChef fields -->
+                <Name>1</Name>
+                <Last>2</Last>
+                <Email>111</Email>
+                <Company>3</Company>
+                <Address>9</Address>
+                <City>4</City>
+                <ZIP>6</ZIP>
+                <Province>5</Province>
+                <Region>8</Region>
+                <LatestAbandonedCartTotal>21</LatestAbandonedCartTotal>
+                <LatestAbandonedCartDate>20</LatestAbandonedCartDate>
+                <LatestShippedOrderDate>18</LatestShippedOrderDate>
+                <LatestShippedOrderID>19</LatestShippedOrderID>
+                <AllOrderedProductIDs>26</AllOrderedProductIDs>
+                <LatestOrderCategoryIDs>17</LatestOrderCategoryIDs>
+                <TotalOrderedLast30d>25</TotalOrderedLast30d>
+                <TotalOrderedLast12m>24</TotalOrderedLast12m>
+                <TotalOrdered>23</TotalOrdered>
+                <LatestAbandonedCartID>22</LatestAbandonedCartID>
+                <Gender>10</Gender>
+                <CustomerID>12</CustomerID>
+                <Phone>11</Phone>
+                <LatestOrderAmount>15</LatestOrderAmount>
+                <LatestOrderDate>14</LatestOrderDate>
+                <LatestOrderID>13</LatestOrderID>
+                <LatestOrderProductIDs>16</LatestOrderProductIDs>
+            </emailchef_mapping>
+        </emailchef_newsletter>
+    </default>
+<!-- adminhtml -->
+    <adminhtml>
+        <menu>
+            <newsletter>
+                <children>
+                    <emailchef translate="title">
+                        <title>eMailChef</title>
+                        <children>
+	                        <emailchef_configuration translate="title">
+		                        <title><![CDATA[Settings & Field Mapping]]></title>
+		                        <action>emailchef/adminhtml_configuration</action>
+		                        <sort_order>0</sort_order>
+			                </emailchef_configuration>
+                            <emailchef_filters translate="title">
+                                <title>Filters</title>
+                                <action>emailchef/adminhtml_filter</action>
+                                <sort_order>10</sort_order>
+                            </emailchef_filters>
+                            <emailchef_jobs module="emailchef">
+                                <title>View eMailChef Tasks</title>
+                                <sort_order>20</sort_order>
+                                <action>emailchef/adminhtml_emailchefbackend</action>
+                            </emailchef_jobs>
+                            <emailchef_sync module="emailchef">
+                                <title>View Task Data</title>
+                                <sort_order>30</sort_order>
+                                <action>emailchef/adminhtml_sync</action>
+                            </emailchef_sync>
+                            <emailchef_log module="emailchef">
+                                <title>View Logs</title>
+                                <sort_order>40</sort_order>
+                                <action>emailchef/adminhtml_log</action>
+                            </emailchef_log>
+                        </children>
+                    </emailchef>
+                </children>
+            </newsletter>
+        </menu>
+        <acl>
+            <resources>
+				<all>
+					<title>Allow everything</title>
+				</all>
+                <admin>
+                    <children>
+                        <newsletter>
+                            <children>
+								<emailchef>
+									<title>eMailChef</title>
+									<children>
+										<emailchef_configuration>
+											<title>eMailChef Configuration</title>
+										</emailchef_configuration>
+										<emailchef_filters>
+											<title>eMailChef Filters</title>
+										</emailchef_filters>
+										<emailchef_fieldsmapping>
+											<title>eMailChef Fields Mapping</title>
+										</emailchef_fieldsmapping>
+										<emailchef_viewdatatransferlog>
+											<title>View data transfer log</title>
+										</emailchef_viewdatatransferlog>
+                                        <emailchef_jobs translate="title">
+                                            <title>eMailChef Jobs</title>
+                                        </emailchef_jobs>
+                                        <emailchef_sync translate="title">
+                                            <title>eMailChef Job Data</title>
+                                        </emailchef_sync>
+                                        <emailchef_log translate="title">
+                                            <title>eMailChef Logs</title>
+                                        </emailchef_log>
+									</children>
+								</emailchef>
+                            </children>
+                        </newsletter>
+
+                        <system>
+                            <children>
+                                <config>
+                                    <children>
+                                        <emailchef_newsletter>
+                                            <title>eMailChef Newsletter</title>
+                                        </emailchef_newsletter>
+                                    </children>
+                                </config>
+                            </children>
+                        </system>
+
+                    </children>
+                </admin>
+            </resources>
+        </acl>
+        <layout>
+            <updates>
+                <emailchef>
+                    <file>emailchef.xml</file>
+                </emailchef>
+            </updates>
+        </layout>
+        <translate>
+            <modules>
+                <emailchef>
+                    <files>
+                        <default>EMailChef_EMailChefSync.csv</default>
+                    </files>
+                </emailchef>
+            </modules>
+        </translate>
+    </adminhtml>
+<!-- cron -->
+    <crontab>
+        <jobs>
+            <emailchef_emailchefsync>
+                <run><model>emailchef/Cron::run</model></run>
+                <schedule>
+                    <!-- If config setting save, overrides default below -->
+                    <config_path>crontab/jobs/emailchef_emailchefsync/schedule/cron_expr</config_path>
+                    <!-- Default to run every 30 minutes -->
+                    <cron_expr>0,30 * * * *</cron_expr>
+                </schedule>
+            </emailchef_emailchefsync>
+        </jobs>
+    </crontab>
+</config>

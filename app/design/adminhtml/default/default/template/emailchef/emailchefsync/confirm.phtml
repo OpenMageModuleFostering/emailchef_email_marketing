@@ -1,0 +1,186 @@
+<?php
+/**
+ * confirm.phtml
+ */
+$storeId = $this->getRequest()->getParam('store_id');
+if(empty($storeId)) {
+    $storeId = NULL; //Mage::app()->getDefaultStoreView()->getStoreId();
+}
+
+$wsSend = new EMailChefWsSend($storeId); /** @todo add in storeID, use session.. not needed really here... **/
+$accessKey = $wsSend->loginFromId();
+
+//ottengo l'elenco delle liste e dei gruppi da emailchef
+$wsImport = new EMailChefWsImport($storeId);
+
+$customersFiltered = $wsImport->getCustomersFiltered($this, $storeId);
+
+$lists = $wsImport->GetNlList($accessKey,true);
+?>
+
+<?php //creo il form nascosto per passare i parametri al tasto back ?>
+<form id="back_form" name="back_form" method="post" action="<?php echo $this->getUrl('*/*/'); ?>">
+    <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" />
+    <input type="hidden" name="store_id" value="<?php echo $this->getRequest()->getParam('store_id'); ?>" />
+    <input type="hidden" name="emailchefCustomers" value="<?php echo $this->getRequest()->getParam('emailchefCustomers'); ?>" />
+    <input type="hidden" name="emailchefProductSku" value="<?php echo $this->getRequest()->getParam('emailchefProductSku'); ?>" />
+    <input type="hidden" name="emailchefCategoryId" value="<?php echo $this->getRequest()->getParam('emailchefCategoryId'); ?>" />
+    <input type="hidden" name="emailchefCustomerGroupId" value="<?php echo $this->getRequest()->getParam('emailchefCustomerGroupId'); ?>" />
+    <input type="hidden" name="emailchefCountry" value="<?php echo $this->getRequest()->getParam('emailchefCountry'); ?>" />
+    <input type="hidden" name="emailchefPostCode" value="<?php echo $this->getRequest()->getParam('emailchefPostCode'); ?>" />
+    <input type="hidden" name="emailchefCustomerStartDate" value="<?php echo $this->getRequest()->getParam('emailchefCustomerStartDate'); ?>" />
+    <input type="hidden" name="emailchefCustomerEndDate" value="<?php echo $this->getRequest()->getParam('emailchefCustomerEndDate'); ?>" />
+    <input type="hidden" name="emailchefTotalAmountCond" value="<?php echo $this->getRequest()->getParam('emailchefTotalAmountCond'); ?>" />
+    <input type="hidden" name="emailchefTotalAmountValue" value="<?php echo $this->getRequest()->getParam('emailchefTotalAmountValue'); ?>" />
+    <input type="hidden" name="emailchefOrderStartDate" value="<?php echo $this->getRequest()->getParam('emailchefOrderStartDate'); ?>" />
+    <input type="hidden" name="emailchefOrderEndDate" value="<?php echo $this->getRequest()->getParam('emailchefOrderEndDate'); ?>" />
+    <input type="hidden" name="emailchefOrderYesNo" value="<?php echo $this->getRequest()->getParam('emailchefOrderYesNo'); ?>" />
+    <input type="hidden" name="emailchefSubscribed" value="<?php echo $this->getRequest()->getParam('emailchefSubscribed'); ?>" />
+</form>
+
+<form id="csv_form" name="csv_form" method="post" action="<?php echo $this->getUrl('*/*/csv'); ?>">
+    <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" />
+    <input type="hidden" name="store_id" value="<?php echo $this->getRequest()->getParam('store_id'); ?>" />
+    <?php
+    $countPost = 0;
+    $textArea = '';
+    $formParams = '';
+    $emailchefCustomerIds = array();
+    //mi passo gli id di tutti i clienti filtrati
+    foreach ($customersFiltered as $i=>$customer) {
+	    if ($i++ < 25) $textArea .= $customer['email'] . "\n";
+	    $emailchefCustomerIds[$countPost] = $customer['entity_id'];
+	    $countPost++;
+    }
+    //salvo l'array nella sessione
+    if ($countPost > 0) {
+	    Mage::getSingleton('core/session')->setEMailChefCustomerIds($emailchefCustomerIds);
+    }
+    ?>
+    <input name="countPost" type="hidden" value="<?php echo $countPost; ?>" />
+</form>
+<div class="content-header">
+    <table cellspacing="0" class="grid-header">
+        <tr>
+            <td><h3><?php echo $this->__('eMailChef')?></h3></td>
+            <td class="a-right">
+	            <div id="emailchefloading" class="emailchefloading"><?php echo $this->__("Please wait for the next step to load") ?></div>
+	            <button id="emailchefback" onclick="back_form.submit()" class="scalable back" type="button"><span><?php echo $this->__('Reset filters')?></span></button>
+                <button onclick="if (!editForm.validate()){return false;} $$('.content-header-floating').invoke('setStyle', {visibility:'hidden'});document.getElementById('emailchefsend').style.display='none';document.getElementById('emailchefback').style.display='none';document.getElementById('emailchefloading').style.display='block';editForm.submit()"
+                        class="scalable save" type="button" id="emailchefsend">
+                    <span><?php echo $this->__('Send to eMailChef')?></span>
+                </button>
+            </td>
+        </tr>
+    </table>
+</div>
+<div class="entry-edit">
+	<?php foreach($lists as $list) : ?>
+        <?php /* @var $list SimpleXMLElement */ ?>
+        <?php $listId = (string) $list->id ?>
+        <?php if($listId == Mage::getStoreConfig('emailchef_newsletter/emailchef/list', $storeId)): ?>
+            <?php $listName = (string) $list->name ?>
+            <?php $idList = (string) $listId ?>
+            <?php $listGUID = (string) $listId ?>
+        <?php endif ?>
+	<?php endforeach ?>
+    <?php if (!isset($idList)): ?>
+    <h4><?php echo $this->__('There is no list selected in eMailChef config. Please select one.')?></h4>
+    <?php else: ?>
+    <form id="edit_form" name="edit_form" method="post" action="<?php echo $this->getUrl('*/*/post')?>">
+        <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" />
+        <input type="hidden" name="store_id" value="<?php echo $this->getRequest()->getParam('store_id'); ?>" />
+	    <input name="emailchefIdList" type="hidden" value="<?php echo $idList; ?>" />
+	    <input name="emailchefListGUID" type="hidden" value="<?php echo $listGUID; ?>" />
+
+	    <h4><span id="spantitle3"><?php echo $this->__('Confirm filtered customers and select eMailChef group')?></span></h4>
+        <fieldset id="my-fieldset">
+	    <table cellspacing="0" class="form-list">
+            <tr>
+                <td colspan="2"><h4><?php echo $this->__('Were found')?> <strong><?php echo $countPost; ?></strong> <?php echo $this->__('records')?></h4></td>
+            </tr>
+            <tr>
+                <td><?php echo $this->__('Filtered customers preview')?>:</td>
+            </tr>
+            <tr>
+                <td>
+                <textarea name="emailchefCustomerFilteredView" rows="5" cols="50" disabled="disabled" class="txtar1"><?php echo $textArea ?></textarea>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <?php echo $this->__('Selected list')?>: <strong>
+                    <?php echo $listName; ?><br /><br /><br />
+                </strong></td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <td>
+                    <h4><?php echo $this->__('Next step')?></h4>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">
+                    <p class="slgrp1"><?php echo $this->__('Select group')?> <input type="radio" name="emailchefNewGroup" value="0" checked="checked" /></p>
+                </td>
+            </tr>
+            <tr>
+                <td class="input-ele">
+                    <p class="istrz1"><?php echo $this->__('Select an existing group')?>:</p>
+                    <select class="required-entry slctpg1" name="emailchefGroupId">
+                    <?php
+                    $groups = array();
+                    foreach($lists as $list) {
+                        if ($list->id == Mage::getStoreConfig('emailchef_newsletter/emailchef/list', $storeId)){
+                            foreach($list->groups as $group) {
+	                            $groups[(string)$group->id] = (string)$group->name;
+                            }
+                        }
+                    }
+                    @asort($groups);
+                    $defaultGroupId = Mage::getStoreConfig('emailchef_newsletter/emailchef/default_group');
+                    foreach ($groups as $tmpid=>$tmpname) {
+	                    echo '<option value="'.$tmpid.'"';
+                        // If there is a default group set in config, pre-select this
+                        if ($tmpid == $defaultGroupId) {
+                            echo ' selected="selected"';
+                        }
+                        echo '>'.htmlspecialchars($tmpname).'</option>';
+                    }
+                    ?>
+                    </select>
+                    <br /><br />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <p class="istrz2"><?php echo $this->__('or')?></p>
+                </td>
+            </tr>
+            <tr>
+                <td class="label">
+                    <p class="slgrp1"><?php echo $this->__('Create new customer group')?> <input type="radio" name="emailchefNewGroup" value="1" /></p>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <p class="istrz1"><?php echo $this->__('Group name')?>:</p>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="text" name="emailchefNewGroupName" size="60" class="inptptx2" />
+                </td>
+            </tr>
+        </table>
+
+        </fieldset>
+    </form>
+    <?php endif; ?>
+
+</div>
+<script type="text/javascript">
+    var editForm = new varienForm('edit_form');
+</script>

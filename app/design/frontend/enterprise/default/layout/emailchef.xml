@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<layout>
+	<checkout_onepage_review>
+		<reference name="checkout.onepage.review.info.items.after">
+			<block type="emailchef/checkout_subscribe" name="emailchef.subscribe" template="emailchef/subscribe.phtml" />
+		</reference>
+	</checkout_onepage_review>
+
+    <customer_account_index>
+        <reference name="customer_account_dashboard_info">
+            <action method="setTemplate">
+                <template>emailchef/customer/account/dashboard/info.phtml</template>
+            </action>
+        </reference>
+    </customer_account_index>
+</layout>

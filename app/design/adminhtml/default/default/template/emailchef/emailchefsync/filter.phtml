@@ -1,0 +1,535 @@
+<?php
+/**
+ * filter.phtml
+ */
+$storeId = $this->getRequest()->getParam('store_id');
+if(empty($storeId)) {
+    $storeId = NULL; //Mage::app()->getDefaultStoreView()->getStoreId();
+}
+
+$wsSend = new EMailChefWsSend($storeId); /** @todo add in storeID, use session.. not needed really here... **/
+$accessKey = $wsSend->loginFromId();
+
+if ($accessKey === false || strlen(Mage::getStoreConfig('emailchef_newsletter/emailchef/list')) < 1) {
+    echo $this->__('WARNING: before proceeding you must correctly configure the settings of eMailChef access in System->Configuration->Newsletter->eMailChef');
+} else {
+    //controllo se la lista e' stata selezionata correttamente
+    $wsImport = new EMailChefWsImport($storeId);
+    $emailchefLists = $wsImport->GetNlList($accessKey);
+
+    //carico i filtri salvati
+    $filterHints = $wsImport->getFilterHints();
+
+    //TODO: sembra inutilizzata
+    //chiamata attivazione web services su EMailChef
+    //$urlWSActivation = 'http://'.Mage::getStoreConfig('newsletter/emailchef/url_console').'/frontend/WSActivation.aspx?usr='.Mage::getStoreConfig('newsletter/emailchef/user').'&pwd='.Mage::getStoreConfig('newsletter/emailchef/password').'&nl_url='.Mage::getStoreConfig('newsletter/emailchef/url_console').'&ws_name=WSEMailChefImport';
+    //fopen($urlWSActivation, 'r');
+
+    //salvo i parametri in variabili
+    $emailchefCustomers = $this->getRequest()->getParam('emailchefCustomers');
+    $emailchefProductSku = $this->getRequest()->getParam('emailchefProductSku');
+    $emailchefCategoryId = $this->getRequest()->getParam('emailchefCategoryId');
+    $emailchefCustomerGroupId = $this->getRequest()->getParam('emailchefCustomerGroupId');
+    $emailchefCountry = $this->getRequest()->getParam('emailchefCountry');
+    $emailchefPostCode = $this->getRequest()->getParam('emailchefPostCode');
+    $emailchefCustomerStartDate = $this->getRequest()->getParam('emailchefCustomerStartDate');
+    $emailchefCustomerEndDate = $this->getRequest()->getParam('emailchefCustomerEndDate');
+    $emailchefTotalAmountCond = $this->getRequest()->getParam('emailchefTotalAmountCond');
+    $emailchefTotalAmountValue = $this->getRequest()->getParam('emailchefTotalAmountValue');
+    $emailchefOrderStartDate = $this->getRequest()->getParam('emailchefOrderStartDate');
+    $emailchefOrderEndDate = $this->getRequest()->getParam('emailchefOrderEndDate');
+    $emailchefOrderYesNo = $this->getRequest()->getParam('emailchefOrderYesNo');
+    $emailchefSubscribed = $this->getRequest()->getParam('emailchefSubscribed');
+
+
+	function print_category($category)
+	{
+		if (is_numeric($category)) {
+			$category = Mage::getModel("catalog/category")->load($category);
+		}
+
+		echo '<option value="'.$category->getData('entity_id').'">'.str_repeat("-", $category->getData("level")-2) . htmlspecialchars($category->getData('name')).'</option>';
+		$children = $category->getChildren();
+		if (!$children) return;
+
+		$children = explode(",", $children);
+		foreach($children as $child) {
+			print_category($child);
+		}
+	}
+?>
+
+<div class="content-header">
+	<table cellspacing="0" class="grid-header">
+	    <tr>
+		    <td>
+                <h3><?php echo $this->__('Filters')?></h3>
+            </td>
+            <td class="a-right">
+	            <div id="emailchefloading" class="emailchefloading"><?php echo $this->__("Please wait for the next step to load") ?></div>
+                <button onclick="$$('.content-header-floating').invoke('setStyle', {visibility:'hidden'});document.getElementById('emailchefsend').style.display='none';document.getElementById('emailchefloading').style.display='block';editForm.submit();" class="scalable save" type="button" id="emailchefsend">
+                    <div class="emailchefloading"></div><span><?php echo $this->__('Apply filter')?></span>
+                </button>
+            </td>
+	    </tr>
+	</table>
+</div>
+
+<div class="entry-edit">
+	<form id="edit_form" name="edit_form" method="post" action="<?php echo $this->getUrl('*/*/confirm')?>">
+	    <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" />
+
+        <input name="filter_name" id="filter_name" type="hidden" value="" />
+
+	    <p id="spansugger"><a href="#ottsugg"><?php echo $this->__('Get hints')?> &rArr;</a></p>
+	    <fieldset id="my-fieldset">
+		<table cellspacing="0" class="form-list">
+		    <tr>
+			    <td colspan="3"><?php echo $this->__('By this plugin you can import contacts registered in your eCommerce in the eMailChef platform.')?></td>
+		    </tr>
+            </tr>
+            <tr>
+			    <td colspan="3">&nbsp;</td>
+		    </tr>
+            <tr>
+			    <td>
+                    <strong><?php echo $this->__('Store')?></strong>
+                </td>
+                <td colspan="2">
+                    <select name="store_id">
+                        <?php foreach($this->_getStoresArray() as $store): ?>
+                        <option value="<?php echo $store['id'] ?>">
+                            <?php echo $store['name'] ?>
+                        </option>
+                        <?php endforeach ?>
+                    </select>
+                </td>
+		    </tr>
+            <tr>
+			    <td colspan="3">&nbsp;</td>
+		    </tr>
+		    <tr>
+			    <td colspan="3">
+                    <strong><?php echo $this->__('Sold products')?></strong>
+                </td>
+		    </tr>
+		    <?php // Customer filter : 0 = all , 1 = who bought , 2 = who have never purchased ?>
+		    <tr>
+                <td class="input-ele spdnpg1">
+                    <input type="radio" name="emailchefCustomers" id="emailchefCustomersAll" value="0" <?php if (!isset($emailchefCustomers) || (isset($emailchefCustomers) && $emailchefCustomers == 0)) { echo 'checked="checked"'; } ?>
+                           onclick="customerDependentFilters(false);" />&nbsp;<label for="emailchefCustomersAll"><?php echo $this->__('All customers')?></label>
+                </td>
+
+                <td class="input-ele spdnpg1">
+                    <input type="radio" name="emailchefCustomers" id="emailchefCustomersWhoHaveBought" value="1" <?php if (isset($emailchefCustomers) && $emailchefCustomers == 1) { echo 'checked="checked"'; } ?>
+                           onclick="customerDependentFilters(false);" />&nbsp;<label for="emailchefCustomersWhoHaveBought"><?php echo $this->__('Customers who have purchased')?></label>
+                </td>
+
+                <td class="input-ele spdnpg1">
+                    <input type="radio" name="emailchefCustomers" id="emailchefCustomersWhoHaventBought" value="2" <?php if (isset($emailchefCustomers) && $emailchefCustomers == 2) { echo 'checked="checked"'; } ?>
+                           onclick="customerDependentFilters(true);" />&nbsp;<label for="emailchefCustomersWhoHaventBought"><?php echo $this->__("Customers who have not purchased")?></label>
+                </td>
+		    </tr>
+            <tr>
+                <td colspan="3">
+                    <strong><?php echo $this->__('Opt-in Status')?></strong>
+                </td>
+            </tr>
+		    <tr>
+                <td>
+                    <input type="radio" name="emailchefSubscribed" id="emailchefSubscribedAllCustomers"
+                           value="0" <?php if (!isset($emailchefSubscribed) || (isset($emailchefSubscribed) && $emailchefSubscribed == 0)) { echo 'checked="checked"'; } ?> />&nbsp;<label for="emailchefSubscribedAllCustomers"><?php echo $this->__("All customers")?></label>
+                </td>
+                <td>
+                    <input type="radio" name="emailchefSubscribed" id="emailchefSubscribedOptIn"
+                           value="1" <?php if (isset($emailchefSubscribed) && $emailchefSubscribed == 1) { echo 'checked="checked"'; } ?> />&nbsp;<label for="emailchefSubscribedOptIn"><?php echo $this->__("Opted-in Only"); ?></label>
+                </td>
+                <td>
+                    <input type="radio" name="emailchefSubscribed" id="emailchefSubscribedNonOptIn"
+                           value="2" <?php if (isset($emailchefSubscribed) && $emailchefSubscribed == 2) { echo 'checked="checked"'; } ?> />&nbsp;<label for="emailchefSubscribedNonOptIn"><?php echo $this->__("Non Opted-in Only"); ?></label>
+                </td>
+		    </tr>
+	    </table>
+
+		<br /><br />
+
+	    <table cellspacing="0" class="form-list">
+		    <tr>
+                <td colspan="2">
+                    <strong><?php echo $this->__('Groups')?></strong>
+                </td>
+		    </tr>
+		    <tr>
+                <td class="labelpg1"><?php echo $this->__('Select customer group')?></td>
+                <td class="input-ele">
+                    <select name="emailchefCustomerGroupId" class="slctpg1">
+                        <?php
+                        $customerGroups = Mage::helper('customer')->getGroups()->toOptionArray();
+
+                        if ($emailchefCustomerGroupId) {
+                            foreach ($customerGroups as $customerGroup) {
+                                if ($emailchefCustomerGroupId == $customerGroup['value']) {
+                                    echo '<option value="'.$customerGroup['value'].'">'.$customerGroup['label'].'</option>';
+                                }
+                            }
+                        }
+                        ?>
+
+                        <option value="0">-- <?php echo $this->__('Any')?> --</option>
+
+                        <?php
+                            foreach ($customerGroups as $customerGroup) {
+                                echo '<option value="'.$customerGroup['value'].'">'.$customerGroup['label'].'</option>';
+                            }
+                        ?>
+                    </select>
+                </td>
+		    </tr>
+
+		    <tr>
+			    <td colspan="2">
+                    <br /><br /><strong><?php echo $this->__('Location')?></strong>
+                </td>
+		    </tr>
+		    <tr>
+			    <td class="labelpg1"><?php echo $this->__('Select country')?></td>
+			    <td class="input-ele">
+                    <select name="emailchefCountry" class="slctpg1">
+                    <?php
+                    $countries = Mage::getResourceModel('directory/country_collection')
+                        ->loadData()
+                        ->toOptionArray(false);
+
+                    if ($emailchefCountry) {
+                        foreach ($countries as $country){
+                        if ($country['value'] == $emailchefCountry)
+                            echo '<option value="'.$country['value'].'">'.$country['label'].'</option>';
+                        }
+                    }
+                    ?>
+
+                    <option value="0">-- <?php echo $this->__('Any')?> --</option>
+
+                    <?php
+                        foreach ($countries as $country) {
+                            echo '<option value="'.$country['value'].'">'.$country['label'].'</option>';
+                        }
+                    ?>
+			        </select>
+			    </td>
+		    </tr>
+		    <tr>
+			    <td class="labelpg1"><?php echo $this->__('Zip code')?></td>
+			    <td class="input-ele">
+			        <input type="text" class="inptptx1" name="emailchefPostCode" size="10" value="<?php echo $emailchefPostCode; ?>" /> <span class="tip">(<?php echo $this->__('e.g.')?> 12345)</span>
+			    </td>
+		    </tr>
+	    </table>
+
+	    <table cellspacing="0" class="form-list" id="customerDependentContainer">
+		    <tr>
+                <td colspan="2">
+                    <br /><br /><strong><?php echo $this->__('Products and categories')?></strong>
+                </td>
+            </tr>
+
+		    <?php //select con tutti i prodotti ?>
+		    <tr>
+                <td class="labelpg1"><?php echo $this->__('Insert product SKU')?></td>
+                <td class="input-ele">
+                    <input type="text" class="inptptx1 customerDependent" name="emailchefProductSku" size="20" value="<?php echo $emailchefProductSku; ?>" /> <span class="tip">(<?php echo $this->__('e.g.')?> MYSKU123)</span>
+                </td>
+		    </tr>
+		    <?php //select con tutte le categorie ?>
+		    <tr>
+                <td class="labelpg1"><?php echo $this->__('Select category')?></td>
+                <td class="input-ele">
+                    <?php
+                    $categoriesCollection = Mage::getModel('catalog/category')->getCollection();
+                    $categoriesCollection->addAttributeToSelect('name');
+                    $categoriesCollection->addAttributeToSelect('entity_id');
+                    ?>
+                    <select id="emailchefCategoryId" name="emailchefCategoryId" class="slctpg1 customerDependent">
+                        <?php
+                        if ($emailchefCategoryId) {
+                            $category = Mage::getModel('catalog/category')->load($emailchefCategoryId);
+                            echo '<option value="'.$emailchefCategoryId.'">'.$category->getData('name').'</option>';
+                        }
+                        ?>
+
+                        <option value="0">-- <?php echo $this->__('Any')?> --</option>
+
+                        <?php
+                        foreach ($categoriesCollection as $category) {
+                            if ($category->getLevel() == 2) {
+	                            print_category($category);
+                            }
+                        }
+                        ?>
+                    </select>
+                </td>
+		    </tr>
+
+		    <tr>
+			    <td colspan="2">
+			        <br /><br /><strong><?php echo $this->__('Subscription date')?></strong>
+                </td>
+		    </tr>
+		    <tr>
+                <td class="labelpg1"><?php echo $this->__('From')?></td>
+                <td class="input-ele">
+                    <input type="text" class="inptptx1 customerDependent" name="emailchefCustomerStartDate" id="emailchefCustomerStartDate" size="20" value="<?php echo $emailchefCustomerStartDate; ?>" />
+                    <img id="emailchefCustomerStartDateTrig" class="v-middle" alt="" src="<?php echo Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_SKIN) ?>/adminhtml/default/default/images/grid-cal.gif"> <span class="tip">(<?php echo Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT) ?>)</span>
+					<script type="text/javascript">
+	                Calendar.setup({
+		                inputField: "emailchefCustomerStartDate",
+		                ifFormat: "<?php echo Mage::app()->getLocale()->getDateStrFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT) ?>",
+		                showsTime: false,
+		                button: "emailchefCustomerStartDateTrig",
+		                align: "Bl",
+		                singleClick : true
+	                });
+                    </script>
+                </td>
+		    </tr>
+		    <tr>
+                <td class="labelpg1"><?php echo $this->__('To')?></td>
+                <td class="input-ele">
+                    <input type="text" class="inptptx1 customerDependent" name="emailchefCustomerEndDate" id="emailchefCustomerEndDate" size="20" value="<?php echo $emailchefCustomerEndDate; ?>" />
+                    <img id="emailchefCustomerEndDateTrig" class="v-middle" alt="" src="<?php echo Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_SKIN) ?>/adminhtml/default/default/images/grid-cal.gif"> <span class="tip">(<?php echo Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT) ?>)</span>
+	                <script type="text/javascript">
+		                Calendar.setup({
+			                inputField: "emailchefCustomerEndDate",
+			                ifFormat: "<?php echo Mage::app()->getLocale()->getDateStrFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT) ?>",
+			                showsTime: false,
+			                button: "emailchefCustomerEndDateTrig",
+			                align: "Bl",
+			                singleClick : true
+		                });
+	                </script>
+                </td>
+		    </tr>
+		    <tr>
+			    <td colspan="2">
+			        <br /><br /><strong><?php echo $this->__('Total purchased amount')?></strong>
+                </td>
+		    </tr>
+		    <tr>
+                <td class="labelpg1"><?php echo $this->__('Order total')?></td>
+                <td class="input-ele">
+                    <select id="emailchefTotalAmountCond" name="emailchefTotalAmountCond" class="slctpg2 customerDependent">
+                        <?php
+                        if ($emailchefTotalAmountCond && $emailchefTotalAmountCond != 'gt') {
+                            if ($emailchefTotalAmountCond == 'lt') {
+                                echo '<option value="lt"> '.$this->__('less than').' </option>';
+                            } elseif ($emailchefTotalAmountCond == 'eq') {
+                                echo '<option value="eq"> '.$this->__('same as').' </option>';
+                            }
+                        }
+                        ?>
+                        <option value="gt"> <?php echo $this->__('more than')?> </option>
+                        <option value="lt"> <?php echo $this->__('less than')?> </option>
+                        <option value="eq"> <?php echo $this->__('same as')?> </option>
+                    </select>
+
+		            <!--label for="emailchefTotalAmountValue" class="lbl1"><?php echo $this->__('Specify amount')?></label-->&nbsp;
+			        <input type="text" class="inptptx1 customerDependent" id="emailchefTotalAmountValue" name="emailchefTotalAmountValue" size="20" value="<?php echo $emailchefTotalAmountValue; ?>" /> <span class="tip">(<?php echo $this->__('e.g.')?> 50)</span>
+			    </td>
+		    </tr>
+
+		    <tr>
+			    <td colspan="2">
+                    <br /><br /><strong><?php echo $this->__('Date of purchase')?></strong>
+                </td>
+		    </tr>
+
+		    <tr>
+			    <td><?php echo $this->__('Show customers who'); ?></td>
+                <td>
+                    <select name="emailchefOrderYesNo" class="slctpg2 customerDependent">
+                        <?php
+                        if ($emailchefOrderYesNo == 'no') {
+                            echo '<option value="no">'.$this->__("Haven't purchased").'</option>';
+                        }
+                        ?>
+                        <option value="yes"> <?php echo $this->__('Have purchased'); ?> </option>
+                        <option value="no"> <?php echo $this->__("Haven't purchased"); ?> </option>
+                    </select>
+                </td>
+		    </tr>
+
+		    <tr>
+                <td class="labelpg1"><?php echo $this->__('From')?></td>
+                <td class="input-ele">
+	                <input type="text" class="inptptx1 customerDependent" name="emailchefOrderStartDate" id="emailchefOrderStartDate" size="20" value="<?php echo $emailchefOrderStartDate; ?>" /><img id="emailchefOrderStartDateTrig" class="v-middle" alt="" src="/skin/adminhtml/default/default/images/grid-cal.gif"> <span class="tip">(<?php echo Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT) ?>)</span>
+	                <script type="text/javascript">
+		                Calendar.setup({
+			                inputField: "emailchefOrderStartDate",
+			                ifFormat: "<?php echo Mage::app()->getLocale()->getDateStrFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT) ?>",
+			                showsTime: false,
+			                button: "emailchefOrderStartDateTrig",
+			                align: "Bl",
+			                singleClick : true
+		                });
+	                </script>
+                </td>
+		    </tr>
+		    <tr>
+                <td class="labelpg1"><?php echo $this->__('To')?></td>
+                <td class="input-ele">
+                    <input type="text" class="inptptx1 customerDependent" name="emailchefOrderEndDate" id="emailchefOrderEndDate" size="20" value="<?php echo $emailchefOrderEndDate; ?>" /><img id="emailchefOrderEndDateTrig" class="v-middle" alt="" src="/skin/adminhtml/default/default/images/grid-cal.gif"> <span class="tip">(<?php echo Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT) ?>)</span>
+	                <script type="text/javascript">
+		                Calendar.setup({
+			                inputField: "emailchefOrderEndDate",
+			                ifFormat: "<?php echo Mage::app()->getLocale()->getDateStrFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT) ?>",
+			                showsTime: false,
+			                button: "emailchefOrderEndDateTrig",
+			                align: "Bl",
+			                singleClick : true
+		                });
+	                </script>
+                </td>
+		    </tr>
+        </table>
+        </fieldset>
+	</form>
+
+    <h4><span id="spantitle3"><a name="saveFilter"><?php echo $this->__('Save current filters as hint')?></a></span></h4>
+    <fieldset id="my-fieldset3">
+        <table>
+            <tr>
+                <td>
+                    <input name="filter_name_text" id="filter_name_text" type="text" value="" maxlength="100" size="50" />
+                    <input class="form-button" type="submit" onclick="saveFilterHint();return false;" value="<?php echo $this->__('Save hint')?>" />
+                </td>
+            </tr>
+        </table>
+    </fieldset>
+
+	<h4><span id="spantitle1"><a name="ottsugg"><?php echo $this->__('Filter hints')?></a></span></h4>
+	<fieldset id="my-fieldset2">
+	<table cellspacing="0" class="form-list">
+	    <tr>
+		    <td><?php echo $this->__('Set and customize one of the following filters:')?></td>
+	    </tr>
+        <tr>
+            <td>
+                <form action="*/*/" id="filtro1" name="filtro1" method="post">
+                    <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" />
+                    <input name="emailchefCustomers" type="hidden" value="2" />
+                    <input name="emailchefCustomerGroupId" type="hidden" value="2" />
+                    <p class="parscefil"><?php echo $this->__("All wholesale customers who haven't purchased yet")?> &raquo;</p>
+                    <input class="form-button" type="submit" value="<?php echo $this->__('Set hint')?>" />
+                </form>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <form action="*/*/" id="filtro2" name="filtro2" method="post">
+                    <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" />
+                    <input name="emailchefCustomers" type="hidden" value="1" />
+                    <input name="emailchefTotalAmountCond" type="hidden" value="gt" />
+                    <input name="emailchefTotalAmountValue" type="hidden" value="50" />
+                    <p class="parscefil"><?php echo $this->__('More than 50 Euros orders')?> &raquo;</p>
+                    <input class="form-button" type="submit" value="<?php echo $this->__('Set hint')?>" />
+                </form>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <form action="*/*/" id="filtro3" name="filtro3" method="post">
+                    <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" />
+                    <input name="emailchefCustomers" type="hidden" value="0" />
+                    <input name="emailchefOrderYesNo" type="hidden" value="no" />
+                    <input name="emailchefOrderStartDate" type="hidden" value="01/01/<?php echo date('Y'); ?>" />
+                    <p class="parscefil"><?php echo $this->__('Members with no purchase in')?> <?php echo date('Y'); ?> &raquo;</p>
+                    <input class="form-button" type="submit" value="<?php echo $this->__('Set hint')?>" />
+                </form>
+
+            </td>
+        </tr>
+
+        <?php if(!empty($filterHints)): ?>
+            <tr>
+                <td>&nbsp;</td>
+            </tr>
+            <tr>
+                <td><?php echo $this->__('Or choose one of those you saved:')?></td>
+            </tr>
+        <?php endif ?>
+
+        <?php
+        foreach ($filterHints as $fh) {
+            $filter_name = $fh['filter_name'];
+            echo '<tr><td>';
+            echo '<form action="*/*/" id="'.$filter_name.'" name="'.$filter_name.'" method="post">';
+            echo '<input name="form_key" type="hidden" value="'. Mage::getSingleton('core/session')->getFormKey() .'" />';
+            $hints = explode('|', $fh['hints']);
+            foreach ($hints as $h) {
+                $array = explode('=', $h);
+                echo '<input name="'.$array[0].'" type="hidden" value="'.$array[1].'" />';
+            }
+            echo '<p class="parscefil">'.$filter_name.' &raquo;</p>';
+            echo '<input class="form-button" type="submit" value="'.$this->__('Set hint').'" />';
+            echo '</form>';
+            echo '&nbsp;';
+            echo '<form name="deleteForm_'.$filter_name.'" action="'.$this->getUrl('*/*/deleteFilterHint').'" method="post">';
+            echo '<input name="form_key" type="hidden" value="'. Mage::getSingleton('core/session')->getFormKey() .'" />';
+            echo '<input name="filter_name" type="hidden" value="'. $filter_name .'" />';
+            echo '<input class="form-button" type="submit" name="delete" onclick="if(confirm(\''.$this->__('Do you really want to delete this filter hint?').'\')==true){this.submit();}return false;" value="'.$this->__('Delete hint').'" />';
+            echo '</form>';
+            echo '</td></tr>';
+        } ?>
+
+    </table>
+    </fieldset>
+
+    <!--<a href="<?php echo $this->getUrl('*/*/testCron')?>">TEST CRON</a>
+    <a href="<?php echo $this->getUrl('*/*/testFields')?>">TEST GETFIELDS</a>-->
+</div>
+<script type="text/javascript">
+    var editForm = new varienForm('edit_form');
+
+    document.getElementsByClassName = function(className) {
+        var retnode = [];
+        var myclass = new RegExp('\\b'+className+'\\b');
+        var elements = this.getElementsByTagName('*');
+        var elementsLength = elements.length;
+        var element = null;
+        for (var i = 0; i < elementsLength; i++) {
+            element = elements[i];
+            if (myclass.test(element.className)) {
+                retnode.push(element);
+            }
+        }
+        return retnode;
+    };
+
+    function customerDependentFilters(isDisabled) {
+        document.getElementById('customerDependentContainer').style.display = (isDisabled) ? 'none' : 'block';
+
+        var elements = document.getElementsByClassName('customerDependent');
+
+        var elementsLength = elements.length;
+        for (var i=0; i < elementsLength; i++) {
+            elements[i].disabled = isDisabled;
+        }
+    }
+
+    function saveFilterHint() {
+        if (document.getElementById('filter_name_text').value=='') {
+            alert('<?php echo $this->__('Please, give your new hint a name.')?>');
+        } else {
+            document.getElementById('filter_name').value = document.getElementById('filter_name_text').value;
+            document.getElementById('edit_form').action = '<?php echo $this->getUrl('*/*/saveFilterHint')?>';
+            document.getElementById('edit_form').submit();
+        }
+        return false;
+    }
+
+    window.onload = function() {
+        var isDisabled = document.getElementById('emailchefCustomersWhoHaventBought').checked;
+        customerDependentFilters(isDisabled);
+    }
+</script>
+<?php } ?>

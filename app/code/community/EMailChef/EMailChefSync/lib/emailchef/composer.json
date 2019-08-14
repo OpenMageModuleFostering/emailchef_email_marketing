@@ -1,0 +1,11 @@
+{
+    "require": {
+      "nategood/httpful": "*"
+    },
+    "autoload": {
+      "psr-0": {"": "src/"},
+  		"psr-4": {
+  		  "EMailChef\\": "src/"
+  		}
+    }
+}

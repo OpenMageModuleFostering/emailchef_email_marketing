@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<layout>
+    
+    <emailchef_adminhtml_emailchefbackend_index>
+        <reference name="content">
+    <!--	  <block type="emailchef/adminhtml_emailchefbackend" name="emailchefbackend" template="emailchef/emailchefbackend.phtml"/>-->
+
+            <block type="emailchef/adminhtml_emailchefbackend" name="emailchefbackend" />
+        </reference>
+    </emailchef_adminhtml_emailchefbackend_index>
+    
+    <emailchef_adminhtml_sync_index>
+        <reference name="content">
+            <block type="emailchef/adminhtml_sync" name="sync" />
+        </reference>
+    </emailchef_adminhtml_sync_index>
+    
+    <emailchef_adminhtml_log_index>
+        <reference name="content">
+            <block type="emailchef/adminhtml_log" name="emailchef_log" />
+        </reference>
+    </emailchef_adminhtml_log_index>
+    
+    <emailchef_adminhtml_filter_index>
+        <update handle="emailchef_adminhtml_index"/>
+        <reference name="content">
+            <block type="emailchef/filters" name="filter" template="emailchef/emailchefsync/filter.phtml"/>
+        </reference>
+        <reference name="head">
+            <action method="addCss"><stylesheet>emailchef/emailchefsync/emailchef.css</stylesheet></action>
+        </reference>
+    </emailchef_adminhtml_filter_index>
+    
+    <emailchef_adminhtml_filter_confirm>
+        <update handle="emailchef_adminhtml_confirm"/>
+        <reference name="content">
+            <block type="adminhtml/template" name="filter" template="emailchef/emailchefsync/confirm.phtml"/>
+        </reference>
+        <reference name="head">
+            <action method="addCss"><stylesheet>emailchef/emailchefsync/emailchef.css</stylesheet></action>
+        </reference>
+    </emailchef_adminhtml_filter_confirm>
+    
+    <emailchef_adminhtml_fieldsmapping_index>
+        <update handle="emailchef_adminhtml_index" />
+        <reference name="content">
+            <block type="adminhtml/template" name="fieldsmapping" template="emailchef/emailchefsync/fieldsmapping.phtml" />
+        </reference>
+        <reference name="head">
+            <action method="addCss"><stylesheet>emailchef/emailchefsync/emailchef.css</stylesheet></action>
+        </reference>
+    </emailchef_adminhtml_fieldsmapping_index>
+    
+	<emailchef_adminhtml_viewdatatransferlog_index>
+		<update handle="emailchef_adminhtml_index" />
+		<reference name="content">
+			<block type="adminhtml/template" name="viewdatatransferlog" template="emailchef/emailchefsync/viewdatatransferlog.phtml" />
+		</reference>
+		<reference name="head">
+			<action method="addCss"><stylesheet>emailchef/emailchefsync/emailchef.css</stylesheet></action>
+		</reference>
+	</emailchef_adminhtml_viewdatatransferlog_index>
+    
+	<emailchef_adminhtml_viewdatatransferlog_search>
+		<update handle="emailchef_adminhtml_index" />
+		<reference name="content">
+			<block type="adminhtml/template" name="viewdatatransferlog" template="emailchef/emailchefsync/viewdatatransferlog.phtml" />
+		</reference>
+		<reference name="head">
+			<action method="addCss"><stylesheet>emailchef/emailchefsync/emailchef.css</stylesheet></action>
+		</reference>
+	</emailchef_adminhtml_viewdatatransferlog_search>
+
+    <adminhtml_system_config_edit>
+        <reference name="head">
+            <action method="addJs"><stylesheet>emailchef/admin.js</stylesheet></action>
+        </reference>
+        <reference name="content">
+            <block type="adminhtml/template" name="emailchefsysconfigjavascript" template="emailchef/emailchefsync/sysconfigjavascript.phtml" />
+        </reference>
+    </adminhtml_system_config_edit>
+
+    
+    <!-- works but need a better image.. -->
+    <!--<default>
+        <reference name="head">
+			<action method="addCss"><stylesheet>emailchef/emailchefsync/emailchef.css</stylesheet></action>
+		</reference>
+    </default>-->
+    
+</layout>

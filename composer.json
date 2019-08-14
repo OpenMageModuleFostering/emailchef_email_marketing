@@ -1,0 +1,16 @@
+{
+    "name": "OpenMageModuleFostering/eMailChef_Email_Marketing",
+    "type": "magento-module",
+    "license": "Academic-Free-License-(AFL)",
+    "homepage": "",
+    "description": "Easily send targeted emails to your clients. Segment and synchronize customers and orders with your eMailChef account.",
+    "authors": [
+    {
+        "name": "eMailChef",
+        "email": "info@emailchef.com"
+    }
+],
+    "suggest": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}
